@@ -1,0 +1,254 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+  DELETED
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMED_OUT
+  HELD_BY_ADMIN
+}
+
+model User {
+  id               String                   @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String                   @unique
+  phone            String                   @unique
+  passwordHash     String
+  role             Role                     @default(USER)
+  status           AccountStatus            @default(ACTIVE)
+  themePreference  String                   @default("dark")
+  consentGiven     Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  sessions         Session[]
+  otpChallenges    OtpChallenge[]
+  passwordResets   PasswordResetToken[]
+  entitlements     Entitlement[]
+  transactions     Transaction[]
+  purchases        Purchase[]
+  playbackProgress PlaybackProgress[]
+  deletionRequests AccountDeletionRequest[]
+  auditLogs        AuditLog[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+
+  @@index([userId])
+}
+
+model OtpChallenge {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Play {
+  id           String        @id @default(uuid())
+  title        String
+  slug         String        @unique
+  description  String
+  posterUrl    String
+  author       String?
+  castDetails  String?
+  price        Int           // Stored in integer KES (e.g., 50000 = KES 500.00)
+  published    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  scenes       Scene[]
+  entitlements Entitlement[]
+  transactions Transaction[]
+  purchases    Purchase[]
+}
+
+model Scene {
+  id           String             @id @default(uuid())
+  playId       String
+  play         Play               @relation(fields: [playId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  posterUrl    String?
+  duration     Int                // in seconds
+  sequence     Int
+  price        Int                // Stored in integer KES
+  videoAssetId String?
+  videoAsset   VideoAsset?        @relation(fields: [videoAssetId], references: [id], onDelete: SetNull)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  entitlements Entitlement[]
+  transactions Transaction[]
+  purchases    Purchase[]
+  progress     PlaybackProgress[]
+
+  @@index([playId])
+}
+
+model VideoAsset {
+  id               String   @id @default(uuid())
+  originalFilename String
+  storageKey       String   @unique
+  fileSize         Int
+  mimeType         String
+  hlsManifestKey   String?
+  processingStatus String   @default("PENDING") // PENDING, PROCESSING, READY, FAILED
+  errorMessage     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  scenes           Scene[]
+}
+
+model Transaction {
+  id                 String            @id @default(uuid())
+  userId             String
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playId             String?
+  play               Play?             @relation(fields: [playId], references: [id], onDelete: SetNull)
+  sceneId            String?
+  scene              Scene?            @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  amount             Int               // Integer KES
+  phone              String
+  merchantRequestId  String?           @unique
+  checkoutRequestId  String?           @unique
+  mpesaReceiptNumber String?           @unique
+  status             TransactionStatus @default(PENDING)
+  adminNotes         String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  entitlements       Entitlement[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Purchase {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playId     String
+  play       Play     @relation(fields: [playId], references: [id], onDelete: Cascade)
+  sceneId    String?
+  scene      Scene?   @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  amount     Int      // Stored in integer KES
+  status     String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  checkoutId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([playId])
+  @@index([sceneId])
+}
+
+model Entitlement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playId        String?
+  play          Play?       @relation(fields: [playId], references: [id], onDelete: SetNull)
+  sceneId       String?
+  scene         Scene?      @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  grantedAt     DateTime    @default(now())
+
+  @@index([userId])
+  @@index([playId])
+  @@index([sceneId])
+}
+
+model PlaybackProgress {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sceneId      String
+  scene        Scene    @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  progressSecs Int      @default(0)
+  completed    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, sceneId])
+}
+
+model AccountDeletionRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    String?
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  status    String   @default("UNREAD") // UNREAD, READ, RESOLVED
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
