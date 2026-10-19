@@ -1,35 +1,32 @@
 import nodemailer from 'nodemailer';
 
+console.log("CHECKING SMTP CONFIG:", {
+  user: process.env.SMTP_USER,
+  hasPass: !!process.env.SMTP_PASSWORD,
+});
+
+export const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.resend.com',
+  port: Number(process.env.SMTP_PORT) || 465,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER || 'resend',
+    pass: process.env.SMTP_PASSWORD,
+  },
+});
+
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  // Always log to terminal in development for quick testing
-  console.log(`\n================ EMAIL OTP LOG ================`);
-  console.log(`To: ${to}`);
-  console.log(`Subject: ${subject}`);
-  console.log(`Body:\n${html}`);
-  console.log(`===============================================\n`);
-
-  // If running locally or without proper SMTP setup, return early without throwing
-  if (process.env.NODE_ENV === 'development' || !process.env.SMTP_USER || process.env.SMTP_USER.includes('dummy')) {
-    return;
-  }
-
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'noreply@setbookstreaming.com',
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || 'onboarding@resend.dev',
       to,
       subject,
       html,
     });
+    console.log('Email sent successfully:', info.messageId);
+    return info;
   } catch (error) {
-    console.error('SMTP Email Delivery Warning (proceeding in dev fallback mode):', error);
+    console.error('Detailed SMTP Error:', error);
+    throw error;
   }
 }
