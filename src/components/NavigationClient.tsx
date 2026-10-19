@@ -27,13 +27,16 @@ export default function NavigationClient({ isLoggedIn, isAdmin }: NavigationClie
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           
           {/* Brand Logo & Link */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="relative w-9 h-9 overflow-hidden rounded-xl border border-amber-500/30 group-hover:border-amber-500 transition-colors bg-zinc-900">
+          <Link href="/" className="flex items-center space-x-3 group shrink-0">
+            {/* Parent MUST have explicit dimensions + relative + shrink-0 */}
+            <div className="relative w-9 h-9 shrink-0 overflow-hidden rounded-xl border border-amber-500/30 group-hover:border-amber-500 transition-colors bg-zinc-900">
               <Image
                 src="/logo.png"
                 alt="Logo"
                 fill
-                className="object-cover"
+                sizes="36px"
+                className="object-contain"
+                priority
               />
             </div>
             <span className="text-sm md:text-base font-black tracking-widest text-amber-500 uppercase bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 bg-clip-text text-transparent">
@@ -101,8 +104,15 @@ export default function NavigationClient({ isLoggedIn, isAdmin }: NavigationClie
       >
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="flex items-center space-x-2">
-            <div className="relative w-7 h-7 overflow-hidden rounded-lg border border-amber-500/30">
-              <Image src="/logo.png" alt="Logo" fill className="object-cover" />
+            {/* Drawer Logo Parent with explicit relative dimensions */}
+            <div className="relative w-7 h-7 shrink-0 overflow-hidden rounded-lg border border-amber-500/30 bg-zinc-950">
+              <Image 
+                src="/logo.png" 
+                alt="Logo" 
+                fill 
+                sizes="28px"
+                className="object-contain" 
+              />
             </div>
             <span className="text-sm font-bold text-white uppercase tracking-wider">Menu</span>
           </div>
