@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Film, Clock, Users, ArrowLeft, ShieldAlert, LayoutDashboard } from 'lucide-react';
 
-export const instant = false;
-
 export default async function AdminLayout({
   children,
 }: {
