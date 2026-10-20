@@ -1,9 +1,10 @@
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { notFound, redirect } from 'next/navigation';
-import { Film, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import StreamClientView from '@/components/StreamClientView';
+import { generateSignedEmbedUrl } from '@/lib/bunny';
 
 interface StreamPageProps {
   params: Promise<{
@@ -50,14 +51,22 @@ export default async function StreamPage({ params }: StreamPageProps) {
 
     const isUnlocked = isOwner || !!entitlement;
 
-    // 3. Fallback resolution for video URL
-    const firstScene = play.scenes && play.scenes.length > 0 ? play.scenes[0] : null;
-    const streamUrl =
-      firstScene?.videoAsset?.storageKey ||
-      firstScene?.videoAsset?.url ||
-      firstScene?.videoUrl ||
-      (play as any).videoUrl ||
-      null;
+    // 3. Resolve Video Stream URL (Prioritize Bunny.net Signed Embed URL)
+    let streamUrl: string | null = null;
+
+    if ((play as any).bunnyVideoId) {
+      // Generate secure 4-hour signed token embed URL for Bunny.net Stream
+      streamUrl = generateSignedEmbedUrl((play as any).bunnyVideoId, 14400);
+    } else {
+      // Fallback for legacy local/external URLs or scene-based assets
+      const firstScene = play.scenes && play.scenes.length > 0 ? play.scenes[0] : null;
+      streamUrl =
+        firstScene?.videoAsset?.storageKey ||
+        firstScene?.videoAsset?.url ||
+        firstScene?.videoUrl ||
+        (play as any).videoUrl ||
+        null;
+    }
 
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
@@ -88,7 +97,8 @@ export default async function StreamPage({ params }: StreamPageProps) {
             id: play.id,
             title: play.title,
             price: play.price,
-            description: play.description,
+            description: play.description || undefined,
+            posterUrl: play.posterUrl || null,
           }}
           streamUrl={streamUrl}
           isUnlocked={isUnlocked}
@@ -101,9 +111,11 @@ export default async function StreamPage({ params }: StreamPageProps) {
               Playwright / Author: {play.author}
             </p>
           )}
-          <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-line pt-2 border-t border-zinc-800/80">
-            {play.description}
-          </p>
+          {play.description && (
+            <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-line pt-2 border-t border-zinc-800/80">
+              {play.description}
+            </p>
+          )}
         </div>
       </div>
     );

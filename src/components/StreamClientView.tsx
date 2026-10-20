@@ -14,7 +14,7 @@ interface StreamClientViewProps {
     imageUrl?: string | null;
     thumbnail?: string | null;
   };
-  streamUrl: string | null;
+  streamUrl: string | null; // 👉 This now receives the secure Bunny.net signed embed URL
   isUnlocked: boolean;
 }
 
@@ -137,20 +137,18 @@ export default function StreamClientView({
 
   return (
     <div className="relative">
-      {/* Video Container */}
+      {/* Video Container (Bunny.net Iframe Stream Integration) */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl relative">
         {unlocked && streamUrl ? (
           <div className="relative aspect-video w-full bg-black flex items-center justify-center">
-            <video
-              controls
-              autoPlay
-              playsInline
-              preload="metadata"
-              className="w-full h-full max-h-[75vh] object-contain focus:outline-none"
+            <iframe
               src={streamUrl}
-            >
-              Your browser does not support the video tag.
-            </video>
+              loading="lazy"
+              className="border-none absolute top-0 left-0 w-full h-full"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+              allowFullScreen
+              title={play.title}
+            />
           </div>
         ) : (
           <div className="aspect-video w-full flex flex-col items-center justify-center text-zinc-500 space-y-3 p-12 bg-zinc-950/90 backdrop-blur-md">
@@ -176,7 +174,7 @@ export default function StreamClientView({
         )}
       </div>
 
-      {/* M-PESA PAYMENT POPUP MODAL (TWO-COLUMN LAYOUT) */}
+      {/* M-PESA PAYMENT POPUP MODAL (UNCHANGED) */}
       {mounted && showModal && !unlocked && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl relative z-[10000] grid grid-cols-1 md:grid-cols-2">

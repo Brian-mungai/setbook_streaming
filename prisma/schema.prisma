@@ -99,6 +99,7 @@ model Play {
   author       String?
   castDetails  String?
   price        Int           // Stored in integer KES (e.g., 50000 = KES 500.00)
+  bunnyVideoId String?  // 👈 This links the database row to Bunny.net
   published    Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

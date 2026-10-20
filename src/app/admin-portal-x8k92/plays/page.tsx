@@ -109,7 +109,7 @@ export default function AdminPlaysManagement() {
                     </td>
                     <td className="py-4 px-6 text-zinc-300">{play.author || 'N/A'}</td>
                     <td className="py-4 px-6 font-bold text-amber-400">
-                      KES {(Number(play.price) / 100).toFixed(2)}
+                      KES {Number(play.price).toLocaleString()}
                     </td>
                     <td className="py-4 px-6">
                       <span
